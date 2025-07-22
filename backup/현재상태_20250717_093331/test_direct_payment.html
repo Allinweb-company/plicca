@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>직접 결제 테스트</title>
+    <script src="https://api.fintree.kr/js/v1/pgAsistant.js"></script>
+</head>
+<body>
+    <h1>직접 결제 테스트</h1>
+    <p>API 응답 데이터로 즉시 결제 진행</p>
+    
+    <button id="payButton">결제 시작</button>
+    
+    <!-- 숨겨진 결제 폼 -->
+    <form name="payInit" id="paymentForm" method="post" style="display: none;">
+        <input type="hidden" name="payMethod" value="card">
+        <input type="hidden" name="mid" value="mimich080m">
+        <input type="hidden" name="trxCd" value="0">
+        <input type="hidden" name="goodsNm" value="올인웹">
+        <input type="hidden" name="ordNo" value="1234">
+        <input type="hidden" name="goodsAmt" value="132">
+        <input type="hidden" name="ordNm" value="김성곤">
+        <input type="hidden" name="ordTel" value="01022691000">
+        <input type="hidden" name="ordEmail" value="4u@all-in-web.kr">
+        <input type="hidden" name="returnUrl" value="https://simple-payment-portal-gonskykim.replit.app/payment_result.php">
+        <input type="hidden" name="notiUrl" value="https://simple-payment-portal-gonskykim.replit.app/payment_notification.php">
+        <input type="hidden" name="userIp" value="127.0.0.1">
+        <input type="hidden" name="mbsUsrId" value="api_user_181714">
+        <input type="hidden" name="mbsReserved" value="APIRequest">
+        <input type="hidden" name="charSet" value="UTF-8">
+        <input type="hidden" name="ediDate" value="20250717181714">
+        <input type="hidden" name="encData" value="da97dfef2fa13af91517eed0e2592869e1c9f5d67b732a9fa26b160068554ff1">
+    </form>
+
+    <script>
+        document.getElementById('payButton').addEventListener('click', function() {
+            console.log('🚀 결제 시작');
+            
+            // Fintree 정식 호출 방식
+            SendPay(document.payInit);
+        });
+
+        // 결제 완료 콜백
+        function pay_result_submit() {
+            console.log('✅ 결제 완료');
+            payResultSubmit();
+        }
+        
+        // 결제 취소 콜백
+        function pay_result_close() {
+            console.log('❌ 결제 취소');
+            alert('결제를 취소했습니다.');
+        }
+    </script>
+</body>
+</html>

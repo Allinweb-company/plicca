@@ -1,0 +1,520 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제 준비 - Webflow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .order-info {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .amount {
+            color: #e74c3c !important;
+            font-size: 1.5rem !important;
+        }
+
+        .payment-btn {
+            width: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .payment-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .payment-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .back-btn {
+            display: block;
+            text-align: center;
+            color: #667eea;
+            text-decoration: none;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        .debug-info {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <h1>💳 결제 준비</h1>
+            <p>주문 정보를 확인하고 결제를 진행해주세요</p>
+        </div>
+
+        <div id="errorMsg" class="error"></div>
+
+        <div class="order-info" id="orderInfo">
+            <div class="info-row">
+                <span class="info-label">주문번호</span>
+                <span class="info-value" id="orderNo">로딩 중...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">상품명</span>
+                <span class="info-value" id="productName">로딩 중...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">수량</span>
+                <span class="info-value" id="quantity">로딩 중...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">주문자</span>
+                <span class="info-value" id="customerName">로딩 중...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">결제금액</span>
+                <span class="info-value amount" id="totalAmount">로딩 중...</span>
+            </div>
+        </div>
+
+        <button id="paymentBtn" class="payment-btn">
+            🚀 결제창 열기
+        </button>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>결제창을 여는 중입니다...</p>
+        </div>
+
+        <a href="#" id="backBtn" class="back-btn">← 이전 단계로 돌아가기</a>
+
+        <!-- 디버그 정보 (개발용) -->
+        <div id="debugInfo" class="debug-info">
+            <strong>디버그 정보:</strong><br>
+            <span id="debugText">더미 데이터 로딩 중...</span>
+        </div>
+
+        <!-- 숨겨진 결제 폼 -->
+        <form name="payInit" id="paymentForm" method="post" style="display: none;">
+            <input type="hidden" name="payMethod" value="card">
+            <input type="hidden" name="mid" value="">
+            <input type="hidden" name="trxCd">
+            <input type="hidden" name="goodsNm">
+            <input type="hidden" name="ordNo">
+            <input type="hidden" name="goodsAmt">
+            <input type="hidden" name="ordNm">
+            <input type="hidden" name="ordTel">
+            <input type="hidden" name="ordEmail">
+            <input type="hidden" name="returnUrl">
+            <input type="hidden" name="notiUrl">
+            <input type="hidden" name="userIp">
+            <input type="hidden" name="mbsUsrId">
+            <input type="hidden" name="mbsReserved">
+            <input type="hidden" name="charSet">
+            <input type="hidden" name="ediDate">
+            <input type="hidden" name="encData">
+            <input type="hidden" name="webflowUrl" value="">
+        </form>
+    </div>
+
+    <!-- Fintree JavaScript SDK -->
+    <script src="https://api.fintree.kr/js/v1/pgAsistant.js"></script>
+
+    <script>
+        // 더미 결제 데이터 (API 호출 없이 바로 사용)
+        const DUMMY_PAYMENT_DATA = {
+            "success": true,
+            "ordNo": "1752367824262",
+            "paymentData": {
+                "mid": "mimich067m",
+                "trxCd": "0",
+                "goodsNm": "111올인웹",
+                "ordNo": "1752367824262",
+                "goodsAmt": 132,
+                "ordNm": "김성곤",
+                "ordTel": "01022691000",
+                "ordEmail": "4u@all-in-web.kr",
+                "returnUrl": "https://simple-payment-portal-gonskykim.replit.app/payment_result.php",
+                "notiUrl": "https://simple-payment-portal-gonskykim.replit.app/payment_notification.php",
+                "userIp": "172.31.128.118",
+                "mbsUsrId": "api_user_012646",
+                "mbsReserved": "APIRequest",
+                "charSet": "UTF-8",
+                "ediDate": "20250713012646",
+                "encData": "37f44483491ce9fa4e828289722c7dbea9aa76c0e443297d1a95de3686d7177a"
+            },
+            "summary": {
+                "imOrderNo": "1752367824262",
+                "productName": "111올인웹",
+                "quantity": 12,
+                "unitPrice": 11,
+                "totalAmount": 132,
+                "customerName": "김성곤",
+                "customerPhone": "01022691000",
+                "customerEmail": "4u@all-in-web.kr"
+            }
+        };
+
+        let paymentData = null;
+        const WEBFLOW_URL = window.location.href;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 Webflow 결제 페이지 로드 시작');
+
+            // 디버그 모드 (URL에 ?debug=1 추가시 활성화)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('debug') === '1') {
+                document.getElementById('debugInfo').style.display = 'block';
+            }
+
+            // 더미 데이터로 바로 초기화
+            initializeWithDummyData();
+
+            // 결제 완료 후 돌아왔는지 확인
+            checkPaymentResult();
+        });
+
+        function initializeWithDummyData() {
+            console.log('🚀 더미 데이터로 결제 초기화');
+            updateDebugInfo('더미 데이터 로딩 중...');
+
+            try {
+                paymentData = DUMMY_PAYMENT_DATA;
+                displayPaymentData(paymentData);
+                console.log('✅ 더미 결제 데이터 로드 완료');
+                updateDebugInfo('더미 데이터 로드 완료 - MID: ' + paymentData.paymentData.mid);
+            } catch (error) {
+                console.error('❌ 더미 데이터 처리 오류:', error);
+                showError('더미 데이터 처리 중 오류가 발생했습니다: ' + error.message);
+                updateDebugInfo('오류: ' + error.message);
+            }
+        }
+
+        function displayPaymentData(data) {
+            if (!data || !data.summary) {
+                showError('결제 데이터 형식이 올바르지 않습니다');
+                return;
+            }
+
+            console.log('🎨 화면에 결제 정보 표시 시작');
+
+            // 안전하게 DOM 요소에 값 설정
+            const orderNoEl = document.getElementById('orderNo');
+            const productNameEl = document.getElementById('productName');
+            const quantityEl = document.getElementById('quantity');
+            const customerNameEl = document.getElementById('customerName');
+            const totalAmountEl = document.getElementById('totalAmount');
+
+            if (orderNoEl) orderNoEl.textContent = data.summary.imOrderNo;
+            if (productNameEl) productNameEl.textContent = data.summary.productName;
+            if (quantityEl) quantityEl.textContent = data.summary.quantity + '개';
+            if (customerNameEl) customerNameEl.textContent = data.summary.customerName;
+            if (totalAmountEl) totalAmountEl.textContent = data.summary.totalAmount.toLocaleString() + '원';
+
+            setupPaymentForm(data.paymentData);
+
+            const paymentBtn = document.getElementById('paymentBtn');
+            if (paymentBtn) {
+                paymentBtn.disabled = false;
+            }
+            
+            console.log('✅ 화면 표시 완료 - 결제 버튼 활성화');
+        }
+
+        function setupPaymentForm(pd) {
+            const form = document.getElementById('paymentForm');
+            if (!form) {
+                console.error('❌ 결제 폼을 찾을 수 없습니다');
+                return;
+            }
+
+            // PHP 서버에서 처리 후 다시 Webflow로 돌아오도록 설정
+            const serverReturnUrl = `https://simple-payment-portal-gonskykim.replit.app/payment_result.php?webflowUrl=${encodeURIComponent(WEBFLOW_URL)}`;
+
+            // 폼 action을 PHP 서버로 설정
+            form.action = serverReturnUrl;
+            
+            // 폼 필드 설정 (안전하게)
+            const fields = [
+                'payMethod', 'mid', 'trxCd', 'goodsNm', 'ordNo', 'goodsAmt',
+                'ordNm', 'ordTel', 'ordEmail', 'returnUrl', 'notiUrl',
+                'userIp', 'mbsUsrId', 'mbsReserved', 'charSet', 'ediDate', 'encData'
+            ];
+
+            fields.forEach(fieldName => {
+                const input = form.querySelector(`input[name="${fieldName}"]`);
+                if (input) {
+                    if (fieldName === 'payMethod') {
+                        input.value = 'card';
+                    } else if (fieldName === 'returnUrl') {
+                        input.value = serverReturnUrl;
+                    } else if (pd[fieldName] !== undefined) {
+                        input.value = pd[fieldName];
+                    }
+                }
+            });
+
+            // webflowUrl 설정
+            const webflowUrlInput = form.querySelector('input[name="webflowUrl"]');
+            if (webflowUrlInput) {
+                webflowUrlInput.value = WEBFLOW_URL;
+            }
+
+            console.log('✅ Webflow 결제 폼 설정 완료');
+            console.log('🔄 Server Return URL:', serverReturnUrl);
+            console.log('📋 주요 데이터:', {
+                mid: pd.mid,
+                ordNo: pd.ordNo,
+                goodsAmt: pd.goodsAmt,
+                ordNm: pd.ordNm
+            });
+        }
+
+        // 결제 버튼 이벤트 리스너
+        document.getElementById('paymentBtn').addEventListener('click', function() {
+            if (!paymentData) {
+                showError('결제 데이터가 준비되지 않았습니다');
+                return;
+            }
+
+            if (typeof SendPay === 'undefined') {
+                showError('Fintree 결제 모듈이 로딩되지 않았습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+
+            console.log('🚀 Webflow에서 결제창 호출 시작');
+            updateDebugInfo('결제창 호출 중...');
+
+            this.style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                console.log('📤 SendPay 함수 호출 - PHP 서버 경유');
+                SendPay(document.getElementById('paymentForm'));
+            } catch (error) {
+                console.error('❌ 결제창 오픈 오류:', error);
+                showError('결제창을 여는 중 오류가 발생했습니다: ' + error.message);
+                this.style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+                updateDebugInfo('결제창 오류: ' + error.message);
+            }
+        });
+
+        function showError(message) {
+            console.error('❌ 오류 발생:', message);
+            const errorDiv = document.getElementById('errorMsg');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+            
+            const paymentBtn = document.getElementById('paymentBtn');
+            if (paymentBtn) {
+                paymentBtn.disabled = true;
+            }
+            updateDebugInfo('오류: ' + message);
+        }
+
+        function updateDebugInfo(message) {
+            const debugText = document.getElementById('debugText');
+            if (debugText) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugText.innerHTML = `[${timestamp}] ${message}<br>` + debugText.innerHTML;
+            }
+        }
+
+        // Fintree 결제 콜백 함수들
+        function pay_result_submit() {
+            console.log('✅ Webflow 결제 완료 - PHP 서버로 리다이렉트');
+            updateDebugInfo('결제 완료 - 서버 처리 중');
+            payResultSubmit();
+        }
+
+        function pay_result_close() {
+            console.log('❌ Webflow 결제 취소');
+            updateDebugInfo('결제 취소됨');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('paymentBtn').style.display = 'block';
+            alert('결제를 취소하였습니다.');
+        }
+
+        // 결제 완료 후 돌아왔을 때 결과 처리
+        function checkPaymentResult() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('result')) {
+                const resultData = {
+                    result: urlParams.get('result'),
+                    ordNo: urlParams.get('ordNo'),
+                    tid: urlParams.get('tid'),
+                    amt: urlParams.get('amt'),
+                    appNo: urlParams.get('appNo'),
+                    resultMsg: urlParams.get('resultMsg')
+                };
+                
+                console.log('🎉 Webflow 결제 결과 수신:', resultData);
+                updateDebugInfo('결제 결과: ' + resultData.result);
+
+                if (resultData.result === '00') {
+                    alert(`결제가 완료되었습니다!\n주문번호: ${resultData.ordNo}\nTID: ${resultData.tid}`);
+                    updateDebugInfo('결제 성공 - 완료');
+                    
+                    // 결제 성공 시 추가 처리 로직
+                    handlePaymentSuccess(resultData);
+                } else {
+                    alert(`결제에 실패했습니다.\n사유: ${resultData.resultMsg || '알 수 없는 오류'}`);
+                    updateDebugInfo('결제 실패');
+                    
+                    // 결제 실패 시 추가 처리 로직
+                    handlePaymentFailure(resultData);
+                }
+
+                // URL 파라미터 제거 (깔끔하게)
+                const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+
+        function handlePaymentSuccess(resultData) {
+            // 결제 성공 시 처리 로직
+            console.log('✅ 결제 성공 처리:', resultData);
+            // 여기에 Wized 변수 업데이트나 다른 로직 추가 가능
+        }
+
+        function handlePaymentFailure(resultData) {
+            // 결제 실패 시 처리 로직
+            console.log('❌ 결제 실패 처리:', resultData);
+            // 여기에 오류 처리 로직 추가 가능
+        }
+
+        // 뒤로가기 버튼
+        document.getElementById('backBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm('결제를 취소하고 이전 페이지로 돌아가시겠습니까?')) {
+                history.back();
+            }
+        });
+
+        // 전역 함수로 노출 (다른 스크립트에서 접근 가능)
+        window.webflowPaymentData = DUMMY_PAYMENT_DATA;
+        window.onPaymentComplete = checkPaymentResult;
+    </script>
+</body>
+</html>

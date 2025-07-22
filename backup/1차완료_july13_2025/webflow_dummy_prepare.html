@@ -1,0 +1,424 @@
+<!-- webflow_dummy_prepare.html -->
+<!DOCTYPE html>
+<html lang="ko" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제 준비</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .payment-card {
+            background: linear-gradient(135deg, #1a1d23 0%, #2d3748 100%);
+            border: 1px solid #4a5568;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .data-display {
+            background: #2d3748;
+            border-radius: 10px;
+            border: 1px solid #4a5568;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .open-payment-btn {
+            background: linear-gradient(45deg, #38a169, #2f855a);
+            border: none;
+            font-size: 1.2rem;
+            padding: 15px 30px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(56, 161, 105, 0.3);
+        }
+        .open-payment-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 161, 105, 0.4);
+        }
+        .loading-spinner {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="payment-card p-4 mb-4">
+                    <div class="text-center mb-4">
+                        <h2 class="text-info">
+                            <i class="fas fa-credit-card me-2"></i>
+                            결제 준비 완료 (더미 데이터)
+                        </h2>
+                        <p class="text-muted">더미 결제 데이터가 준비되었습니다. 아래 정보를 확인 후 결제를 진행하세요.</p>
+                    </div>
+
+                    <!-- 주문 정보 표시 -->
+                    <div id="orderSummary" class="mb-4">
+                        <h5 class="text-warning mb-3">
+                            <i class="fas fa-shopping-cart me-2"></i>
+                            주문 정보
+                        </h5>
+                        <div class="data-display p-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>주문번호:</strong> <span id="orderNo" class="text-info"></span></p>
+                                    <p><strong>상품명:</strong> <span id="productName" class="text-success"></span></p>
+                                    <p><strong>수량:</strong> <span id="quantity" class="text-warning"></span>개</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>결제금액:</strong> <span id="totalAmount" class="text-danger"></span>원</p>
+                                    <p><strong>주문자:</strong> <span id="customerName" class="text-primary"></span></p>
+                                    <p><strong>연락처:</strong> <span id="customerPhone" class="text-secondary"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 결제 데이터 표시 -->
+                    <div class="mb-4">
+                        <h5 class="text-warning mb-3">
+                            <i class="fas fa-cogs me-2"></i>
+                            결제 데이터 (Fintree)
+                        </h5>
+                        <div class="data-display p-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>MID:</strong> <span id="mid" class="text-info"></span></p>
+                                    <p><strong>TID:</strong> <span id="ordNoDisplay" class="text-success"></span></p>
+                                    <p><strong>금액:</strong> <span id="goodsAmt" class="text-danger"></span>원</p>
+                                    <p><strong>상품명:</strong> <span id="goodsNm" class="text-warning"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>주문자명:</strong> <span id="ordNm" class="text-primary"></span></p>
+                                    <p><strong>전화번호:</strong> <span id="ordTel" class="text-secondary"></span></p>
+                                    <p><strong>이메일:</strong> <span id="ordEmail" class="text-info"></span></p>
+                                    <p><strong>처리일시:</strong> <span id="ediDate" class="text-muted"></span></p>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <p><strong>Return URL:</strong> <span id="returnUrl" class="text-success"></span></p>
+                                <p><strong>Noti URL:</strong> <span id="notiUrl" class="text-warning"></span></p>
+                                <p><strong>암호화 데이터:</strong> <span id="encData" class="text-danger text-break"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 결제창 오픈 버튼 -->
+                    <div class="text-center">
+                        <button id="openPaymentBtn" class="btn open-payment-btn btn-lg">
+                            <i class="fas fa-play me-2"></i>
+                            결제창 오픈 (더미 데이터)
+                        </button>
+                        
+                        <!-- PC 환경 안내 -->
+                        <div id="pcNotice" class="alert alert-info mt-3" style="display: none;">
+                            <h6><i class="fas fa-desktop me-2"></i>PC 환경 안내</h6>
+                            <p class="mb-2">PC에서 결제가 원활하지 않을 경우:</p>
+                            <ul class="mb-0 text-start">
+                                <li><strong>F12</strong>를 눌러 개발자 도구를 연 상태에서 결제 진행</li>
+                                <li>팝업 차단을 해제해주세요</li>
+                                <li>아래 직접 이동 버튼을 사용해주세요</li>
+                            </ul>
+                            <button id="directPaymentBtn" class="btn btn-warning mt-2">
+                                <i class="fas fa-external-link-alt me-2"></i>
+                                직접 결제 페이지로 이동
+                            </button>
+                        </div>
+                        
+                        <div class="loading-spinner mt-3">
+                            <div class="spinner-border text-success" role="status">
+                                <span class="visually-hidden">결제창 로딩 중...</span>
+                            </div>
+                            <p class="mt-2">결제창을 여는 중입니다...</p>
+                        </div>
+                    </div>
+
+                    <!-- 숨겨진 결제 폼 - 백업 스타일과 동일한 구조 -->
+                    <form name="payInit" id="paymentForm" method="post" style="display: none;">
+                        <input type="hidden" name="payMethod" value="card">
+                        <input type="hidden" name="mid" value="">
+                        <input type="hidden" name="trxCd">
+                        <input type="hidden" name="goodsNm">
+                        <input type="hidden" name="ordNo">
+                        <input type="hidden" name="goodsAmt">
+                        <input type="hidden" name="ordNm">
+                        <input type="hidden" name="ordTel">
+                        <input type="hidden" name="ordEmail">
+                        <input type="hidden" name="returnUrl">
+                        <input type="hidden" name="notiUrl">
+                        <input type="hidden" name="userIp">
+                        <input type="hidden" name="mbsUsrId">
+                        <input type="hidden" name="mbsReserved">
+                        <input type="hidden" name="charSet">
+                        <input type="hidden" name="ediDate">
+                        <input type="hidden" name="encData">
+                    </form>
+                </div>
+
+                <!-- 뒤로가기 버튼 -->
+                <div class="text-center">
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        메인 페이지로
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fintree JavaScript SDK -->
+    <script src="https://api.fintree.kr/js/v1/pgAsistant.js" onerror="console.error('Fintree JS 로딩 실패')"></script>
+    
+    <script>
+        // ⭐ Webflow URL 감지 및 설정
+        const WEBFLOW_URL = window.location.href;
+        
+        // ⭐ 더미 결제 데이터 (첨부된 파일과 정확히 일치)
+        const DUMMY_PAYMENT_DATA = {
+            "success": true,
+            "ordNo": "1752386664547",
+            "paymentData": {
+                "mid": "mimich067m",
+                "trxCd": "0",
+                "goodsNm": "상품상품",
+                "ordNo": "1752386664547",
+                "goodsAmt": 132,
+                "ordNm": "111김성곤",
+                "ordTel": "01022691000",
+                "ordEmail": "4u@all-in-web.kr",
+                "returnUrl": "/payment_result.php",  // ⭐ 원본 상대경로 유지
+                "notiUrl": "/payment_notification.php",  // ⭐ 원본 상대경로 유지
+                "userIp": "172.31.128.78",
+                "mbsUsrId": "api_user_150917",
+                "mbsReserved": "APIRequest",
+                "charSet": "UTF-8",
+                "ediDate": "20250713150917",
+                "encData": "93784249e2dce055dd8a64e6506c0a1574f33252d518197066d0c0c181c873fa"
+            },
+            "fintreeJsUrl": "https://api.fintree.kr/js/v1/pgAsistant.js",
+            "summary": {
+                "imOrderNo": "1752386664547",
+                "productName": "상품상품",
+                "quantity": 12,
+                "unitPrice": 11,
+                "totalAmount": 132,
+                "customerName": "111김성곤",
+                "customerPhone": "01022691000",
+                "customerEmail": "4u@all-in-web.kr"
+            }
+        };
+
+        let paymentData = null;
+
+        // 페이지 로드 시 더미 데이터로 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 더미 데이터로 결제 페이지 초기화');
+            loadDummyPaymentData();
+            
+            // 환경별 안내 표시
+            const env = detectEnvironment();
+            if (!env.isMobile) {
+                document.getElementById('pcNotice').style.display = 'block';
+                console.log('💻 PC 환경 감지 - 안내 메시지 표시');
+            }
+            
+            // 직접 결제 버튼 이벤트
+            document.getElementById('directPaymentBtn').addEventListener('click', function() {
+                console.log('🔄 직접 결제 페이지로 이동');
+                const form = document.getElementById('paymentForm');
+                form.target = '_self';
+                form.submit();
+            });
+        });
+
+        // 더미 결제 데이터 로드
+        function loadDummyPaymentData() {
+            try {
+                console.log('🚀 더미 결제 데이터 로드 시작');
+                
+                paymentData = DUMMY_PAYMENT_DATA;
+                displayPaymentData(paymentData);
+                
+                console.log('✅ 더미 결제 데이터 로드 완료:', paymentData);
+                
+            } catch (error) {
+                console.error('❌ 더미 데이터 로드 오류:', error);
+                alert('더미 데이터 로드 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 결제 데이터 화면 표시
+        function displayPaymentData(data) {
+            console.log('🎨 화면에 더미 결제 정보 표시');
+            
+            // 주문 정보 표시
+            document.getElementById('orderNo').textContent = data.summary.imOrderNo;
+            document.getElementById('productName').textContent = data.summary.productName;
+            document.getElementById('quantity').textContent = data.summary.quantity;
+            document.getElementById('totalAmount').textContent = data.summary.totalAmount.toLocaleString();
+            document.getElementById('customerName').textContent = data.summary.customerName;
+            document.getElementById('customerPhone').textContent = data.summary.customerPhone;
+
+            // 결제 데이터 표시
+            const pd = data.paymentData;
+            document.getElementById('mid').textContent = pd.mid;
+            document.getElementById('ordNoDisplay').textContent = pd.ordNo;
+            document.getElementById('goodsAmt').textContent = parseInt(pd.goodsAmt).toLocaleString();
+            document.getElementById('goodsNm').textContent = pd.goodsNm;
+            document.getElementById('ordNm').textContent = pd.ordNm;
+            document.getElementById('ordTel').textContent = pd.ordTel;
+            document.getElementById('ordEmail').textContent = pd.ordEmail;
+            document.getElementById('ediDate').textContent = pd.ediDate;
+            // ⭐ 변경된 URL을 화면에 표시
+            document.getElementById('returnUrl').textContent = pd.returnUrl;
+            document.getElementById('notiUrl').textContent = pd.notiUrl;
+            document.getElementById('encData').textContent = pd.encData;
+
+            // ⭐ returnUrl을 Replit 절대 경로로 설정
+            pd.returnUrl = "https://simple-payment-portal-gonskykim.replit.app/payment_result.php";
+            pd.notiUrl = "https://simple-payment-portal-gonskykim.replit.app/payment_notification.php";
+            
+            // 폼에 데이터 설정 - Replit 서버로 action 설정
+            const form = document.getElementById('paymentForm');
+            form.action = pd.returnUrl;
+            form.payMethod.value = 'card';
+            form.mid.value = pd.mid;
+            form.trxCd.value = pd.trxCd;
+            form.goodsNm.value = pd.goodsNm;
+            form.ordNo.value = pd.ordNo;
+            form.goodsAmt.value = pd.goodsAmt;
+            form.ordNm.value = pd.ordNm;
+            form.ordTel.value = pd.ordTel;
+            form.ordEmail.value = pd.ordEmail;
+            form.returnUrl.value = pd.returnUrl;
+            form.notiUrl.value = pd.notiUrl;
+            form.userIp.value = pd.userIp;
+            form.mbsUsrId.value = pd.mbsUsrId;
+            form.mbsReserved.value = pd.mbsReserved;
+            form.charSet.value = pd.charSet;
+            form.ediDate.value = pd.ediDate;
+            form.encData.value = pd.encData;
+            
+            console.log('✅ 더미 데이터로 폼 설정 완료:', {
+                mid: form.mid.value,
+                ordNo: form.ordNo.value,
+                goodsAmt: form.goodsAmt.value,
+                encData: form.encData.value.substring(0, 20) + '...'
+            });
+        }
+
+        // 디바이스 및 브라우저 감지
+        function detectEnvironment() {
+            const userAgent = navigator.userAgent;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            const isDevToolsOpen = window.outerHeight - window.innerHeight > 160;
+            
+            console.log('🔍 환경 감지:', {
+                userAgent: userAgent,
+                isMobile: isMobile,
+                isDevToolsOpen: isDevToolsOpen,
+                windowSize: {
+                    outer: window.outerHeight,
+                    inner: window.innerHeight,
+                    diff: window.outerHeight - window.innerHeight
+                }
+            });
+            
+            return { userAgent, isMobile, isDevToolsOpen };
+        }
+
+        // 결제창 오픈 (더미 데이터 사용)
+        document.getElementById('openPaymentBtn').addEventListener('click', function() {
+            try {
+                // 환경 감지
+                const env = detectEnvironment();
+                
+                // Fintree SDK 확인
+                if (typeof SendPay === 'undefined') {
+                    console.error('SendPay 함수가 정의되지 않음 - Fintree JS 로딩 실패');
+                    alert('Fintree 결제 라이브러리가 로딩되지 않았습니다. 페이지를 새로고침 해주세요.');
+                    return;
+                }
+
+                // 더미 데이터 확인
+                if (!paymentData) {
+                    alert('더미 결제 데이터가 준비되지 않았습니다.');
+                    return;
+                }
+
+                console.log('🚀 더미 데이터로 결제창 오픈');
+                console.log('📋 더미 결제 데이터:', paymentData);
+                console.log('✅ SendPay 함수 확인:', typeof SendPay);
+                console.log('🖥️ 환경 정보:', env);
+
+                // PC에서 개발자 도구가 닫혀있을 때 특별 처리
+                if (!env.isMobile && !env.isDevToolsOpen) {
+                    console.warn('⚠️ PC 환경에서 개발자 도구가 감지되지 않음 - 특별 처리 모드');
+                    
+                    // 팝업 차단 방지를 위한 사용자 상호작용 직후 실행
+                    setTimeout(() => {
+                        try {
+                            SendPay(document.getElementById('paymentForm'));
+                        } catch (error) {
+                            console.error('❌ PC 모드 결제창 오픈 실패:', error);
+                            alert('PC에서 결제창을 여는 중 오류가 발생했습니다. F12를 눌러 개발자 도구를 열고 다시 시도해주세요.');
+                            document.querySelector('.loading-spinner').style.display = 'none';
+                            this.style.display = 'block';
+                        }
+                    }, 100);
+                } else {
+                    // 모바일이거나 개발자 도구가 열린 상태에서는 바로 실행
+                    SendPay(document.getElementById('paymentForm'));
+                }
+
+                // 로딩 표시
+                document.querySelector('.loading-spinner').style.display = 'block';
+                this.style.display = 'none';
+                
+            } catch (error) {
+                console.error('❌ 결제창 오픈 오류:', error);
+                alert('결제창을 여는 중 오류가 발생했습니다: ' + error.message);
+                
+                // 버튼 복원
+                document.querySelector('.loading-spinner').style.display = 'none';
+                this.style.display = 'block';
+            }
+        });
+
+        // 결제 완료 콜백 - 단순히 payment_result.php로 이동
+        function pay_result_submit() {
+            const env = detectEnvironment();
+            console.log('✅ 더미 데이터 결제 완료 - payment_result.php로 이동');
+            console.log('🖥️ 결제 완료 시 환경:', env);
+            
+            // 환경별 로그 추가
+            if (!env.isMobile && !env.isDevToolsOpen) {
+                console.warn('⚠️ PC 환경에서 개발자 도구 없이 결제 완료됨 - 특이 케이스');
+            }
+            
+            // ⭐ 폼 타겟을 현재 창으로 설정하여 바로 이동
+            const form = document.getElementById('paymentForm');
+            form.target = '_self';  // 현재 창에서 이동
+            
+            // ⭐ 직접 폼 제출
+            form.submit();
+        }
+        
+        // 결제 취소 콜백
+        function pay_result_close() {
+            const env = detectEnvironment();
+            console.log('❌ 더미 데이터 결제 취소');
+            console.log('🖥️ 결제 취소 시 환경:', env);
+            
+            document.querySelector('.loading-spinner').style.display = 'none';
+            document.getElementById('openPaymentBtn').style.display = 'block';
+            
+            if (!env.isMobile && !env.isDevToolsOpen) {
+                alert('PC에서 결제를 취소하였습니다. 개발자 도구(F12)를 열고 다시 시도하거나 직접 이동 버튼을 사용해주세요.');
+            } else {
+                alert('더미 데이터 결제를 취소하였습니다.');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head><title>폼 테스트</title></head>
+<body>
+<form id="testForm">
+    <input type="hidden" name="mid">
+    <input type="hidden" name="ordNo">
+</form>
+<script>
+    // 폼 필드에 값 설정 테스트
+    const form = document.getElementById('testForm');
+    form.mid.value = 'mimich080m';
+    form.ordNo.value = 'TEST123';
+    
+    console.log('mid value:', form.mid.value);
+    console.log('ordNo value:', form.ordNo.value);
+    console.log('폼 데이터 확인 완료');
+</script>
+</body>
+</html>

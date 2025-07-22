@@ -1,0 +1,360 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제 준비 - Webflow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .order-info {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .amount {
+            color: #e74c3c !important;
+            font-size: 1.5rem !important;
+        }
+
+        .payment-btn {
+            width: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .payment-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .processing-window {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="processing-window" id="processingWindow">
+        <div class="spinner"></div>
+        <h3>결제 승인 처리 중...</h3>
+        <p>PHP 서버에서 결제 승인을 진행하고 있습니다.</p>
+        <p><small>창을 닫지 마세요.</small></p>
+    </div>
+
+    <div class="payment-container">
+        <div class="header">
+            <h1>💳 결제 준비</h1>
+            <p>주문 정보를 확인하고 결제를 진행해주세요</p>
+        </div>
+
+        <div class="order-info">
+            <div class="info-row">
+                <span class="info-label">주문번호</span>
+                <span class="info-value" id="orderNo">1752367824262</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">상품명</span>
+                <span class="info-value" id="productName">111올인웹</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">수량</span>
+                <span class="info-value" id="quantity">12개</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">주문자</span>
+                <span class="info-value" id="customerName">김성곤</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">결제금액</span>
+                <span class="info-value amount" id="totalAmount">132원</span>
+            </div>
+        </div>
+
+        <button id="paymentBtn" class="payment-btn">
+            🚀 결제창 열기
+        </button>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>결제창을 여는 중입니다...</p>
+        </div>
+
+        <!-- 숨겨진 결제 폼 -->
+        <form name="payInit" id="paymentForm" method="post" style="display: none;">
+            <input type="hidden" name="payMethod" value="card">
+            <input type="hidden" name="mid" value="mimich067m">
+            <input type="hidden" name="trxCd" value="0">
+            <input type="hidden" name="goodsNm" value="111올인웹">
+            <input type="hidden" name="ordNo" value="1752367824262">
+            <input type="hidden" name="goodsAmt" value="132">
+            <input type="hidden" name="ordNm" value="김성곤">
+            <input type="hidden" name="ordTel" value="01022691000">
+            <input type="hidden" name="ordEmail" value="4u@all-in-web.kr">
+            <input type="hidden" name="returnUrl" value="">
+            <input type="hidden" name="notiUrl" value="">
+            <input type="hidden" name="userIp" value="172.31.128.118">
+            <input type="hidden" name="mbsUsrId" value="api_user_012646">
+            <input type="hidden" name="mbsReserved" value="APIRequest">
+            <input type="hidden" name="charSet" value="UTF-8">
+            <input type="hidden" name="ediDate" value="20250713012646">
+            <input type="hidden" name="encData" value="37f44483491ce9fa4e828289722c7dbea9aa76c0e443297d1a95de3686d7177a">
+        </form>
+    </div>
+
+    <!-- Fintree JavaScript SDK -->
+    <script src="https://api.fintree.kr/js/v1/pgAsistant.js"></script>
+
+    <script>
+        const WEBFLOW_URL = window.location.href;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 Webflow 결제 페이지 로드 시작');
+            setupPaymentForm();
+            checkPaymentResult();
+        });
+
+        function setupPaymentForm() {
+            // ⭐ 새창에서 PHP 승인 처리 후 Webflow로 돌아오도록 설정
+            const serverReturnUrl = `https://w110.winnerit.co.kr/payment_result.php?webflowUrl=${encodeURIComponent(WEBFLOW_URL)}`;
+
+            const form = document.getElementById('paymentForm');
+            form.action = serverReturnUrl;
+            form.returnUrl.value = serverReturnUrl;
+
+            console.log('✅ Webflow 결제 폼 설정 완료');
+            console.log('🔄 Server Return URL:', serverReturnUrl);
+        }
+
+        // 결제 버튼 이벤트
+        document.getElementById('paymentBtn').addEventListener('click', function() {
+            if (typeof SendPay === 'undefined') {
+                alert('Fintree 결제 모듈이 로딩되지 않았습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+
+            console.log('🚀 Webflow에서 결제창 호출 시작');
+
+            this.style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                console.log('📤 SendPay 함수 호출 - PHP 서버 경유');
+                SendPay(document.getElementById('paymentForm'));
+            } catch (error) {
+                console.error('❌ 결제창 오픈 오류:', error);
+                alert('결제창을 여는 중 오류가 발생했습니다: ' + error.message);
+                this.style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        // ⭐ 핵심: 결제 완료 콜백 - 새창에서 PHP 승인 처리
+        function pay_result_submit() {
+            console.log('✅ Webflow 결제 완료 - PHP 승인 처리 시작');
+            
+            // 승인 처리 표시
+            showProcessingWindow();
+            
+            // ⭐ 새창에서 PHP 승인 처리 페이지 직접 열기
+            const serverUrl = `https://w110.winnerit.co.kr/payment_result.php?webflowUrl=${encodeURIComponent(WEBFLOW_URL)}`;
+            
+            const approvalWindow = window.open(
+                serverUrl,  // ⭐ 실제 PHP 페이지 URL 지정
+                'paymentApproval',
+                'width=900,height=800,scrollbars=yes,resizable=yes'
+            );
+            
+            // 새창이 열렸는지 확인
+            if (!approvalWindow) {
+                alert('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.');
+                hideProcessingWindow();
+                document.getElementById('paymentBtn').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            
+            // 부모창에서 결과 수신 함수 등록 (새창에서 호출용)
+            window.onPaymentComplete = function(resultData) {
+                console.log('🎉 새창에서 승인 결과 수신:', resultData);
+                hideProcessingWindow();
+                
+                if (resultData.result === '00') {
+                    alert(`✅ 결제 승인이 완료되었습니다!\n주문번호: ${resultData.ordNo}\nTID: ${resultData.tid}\n승인번호: ${resultData.appNo || 'N/A'}`);
+                } else {
+                    alert(`❌ 결제 승인에 실패했습니다.\n사유: ${resultData.resultMsg || '알 수 없는 오류'}`);
+                }
+                
+                // 버튼 복원
+                document.getElementById('paymentBtn').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            };
+            
+            // ⭐ payResultSubmit() 대신 새창에서 폼 제출
+            // 현재 창은 그대로 유지하고 새창에서만 처리
+            const form = document.getElementById('paymentForm');
+            form.target = 'paymentApproval';  // 새창으로 제출
+            
+            // Fintree 기본 함수 호출하되 새창으로 처리
+            payResultSubmit();
+        }
+
+        function pay_result_close() {
+            console.log('❌ Webflow 결제 취소');
+            hideProcessingWindow();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('paymentBtn').style.display = 'block';
+            alert('결제를 취소하였습니다.');
+        }
+
+        function showProcessingWindow() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('processingWindow').style.display = 'block';
+        }
+
+        function hideProcessingWindow() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('processingWindow').style.display = 'none';
+        }
+
+        // 결제 완료 후 돌아왔을 때 결과 처리 (GET 파라미터)
+        function checkPaymentResult() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('result')) {
+                const resultData = {
+                    result: urlParams.get('result'),
+                    ordNo: urlParams.get('ordNo'),
+                    tid: urlParams.get('tid'),
+                    amt: urlParams.get('amt'),
+                    appNo: urlParams.get('appNo'),
+                    resultMsg: urlParams.get('resultMsg')
+                };
+
+                console.log('🎉 Webflow 결제 결과 수신:', resultData);
+
+                if (resultData.result === '00') {
+                    alert(`✅ 결제가 완료되었습니다!\n주문번호: ${resultData.ordNo}\nTID: ${resultData.tid}\n승인번호: ${resultData.appNo || 'N/A'}`);
+                } else {
+                    alert(`❌ 결제에 실패했습니다.\n사유: ${resultData.resultMsg || '알 수 없는 오류'}`);
+                }
+
+                // URL 파라미터 제거
+                const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+    </script>
+</body>
+</html>
